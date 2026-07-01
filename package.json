@@ -1,7 +1,7 @@
 {
-  "name": "autoscanner-desktop",
+  "name": "bipe-unico-desktop",
   "version": "0.1.0",
-  "description": "Desktop app for AutoScanner with Supabase login and subscription gating.",
+  "description": "Desktop app for Bipe Unico with Supabase login and subscription gating.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -13,8 +13,8 @@
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.autoscanner.desktop",
-    "productName": "AutoScanner",
+    "appId": "com.bikeunico.desktop",
+    "productName": "Bipe Único",
     "files": [
       "src/**/*",
       "automation/**/*",

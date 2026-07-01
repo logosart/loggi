@@ -4,19 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https:; script-src 'self'; style-src 'self';" />
-    <title>AutoScanner</title>
+    <title>Bipe Único</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <aside class="sidebar">
         <div>
-          <div class="brand">AutoScanner</div>
+          <div class="brand">Bipe Único</div>
           <div class="muted">Automação Shopee Xpress</div>
         </div>
         <nav class="nav">
           <button class="nav-item active" data-view="loginView">Conta</button>
           <button class="nav-item" data-view="automationView">Automação</button>
+          <button class="nav-item" data-view="teamView">Equipe</button>
           <button class="nav-item" data-view="settingsView">Configuração</button>
         </nav>
         <div class="account-mini">
@@ -48,7 +49,7 @@
 
           <div class="status-grid">
             <div class="metric"><span>Usuário</span><strong id="userValue">-</strong></div>
-            <div class="metric"><span>Status</span><strong id="subscriptionValue">-</strong></div>
+            <div class="metric"><span>Plano</span><strong id="planValue">-</strong></div>
             <div class="metric"><span>Validade</span><strong id="periodValue">-</strong></div>
           </div>
         </section>
@@ -80,6 +81,29 @@
               <button id="openFolderButton" class="ghost">Abrir pasta</button>
             </div>
             <code id="automationDir">-</code>
+          </div>
+        </section>
+
+        <section id="teamView" class="view">
+          <div class="view-header">
+            <div>
+              <h1>Equipe</h1>
+              <p>Convites ficam disponíveis para assinantes do plano empresarial.</p>
+            </div>
+            <span id="teamBadge" class="badge neutral">Plano pessoal</span>
+          </div>
+
+          <form id="inviteForm" class="panel">
+            <label>E-mail do convidado<input id="inviteEmail" type="email" autocomplete="email" required /></label>
+            <div class="actions">
+              <button type="submit" id="inviteButton" class="primary">Enviar convite</button>
+            </div>
+          </form>
+
+          <div class="status-grid">
+            <div class="metric"><span>Organização</span><strong id="organizationValue">-</strong></div>
+            <div class="metric"><span>Vagas usadas</span><strong id="seatsValue">-</strong></div>
+            <div class="metric"><span>Convites pendentes</span><strong id="pendingInvitesValue">-</strong></div>
           </div>
         </section>
 

@@ -1,6 +1,6 @@
-# AutoScanner Desktop
+# Bipe Unico Desktop
 
-App desktop em Electron para liberar o AutoScanner por login Supabase e assinatura ativa.
+App desktop em Electron para liberar a automacao Bipe Unico por login Supabase e assinatura ativa.
 
 ## Rodar em desenvolvimento
 
@@ -24,22 +24,42 @@ BILLING_URL=https://seu-checkout-ou-portal-de-assinatura
 
 Execute `supabase/schema.sql` no SQL Editor do Supabase.
 
-O app considera a assinatura ativa quando existe uma linha em `subscriptions` para o usuario autenticado com:
+O app libera a automacao quando existe:
 
-- `status` igual a `active` ou `trialing`
-- `current_period_end` vazio ou no futuro
+- plano pessoal ativo para o proprio usuario; ou
+- plano empresarial ativo para uma organizacao da qual o usuario faz parte.
 
-Para cobrar assinatura de verdade, use Stripe ou Mercado Pago em um backend/webhook e atualize a tabela `subscriptions` com uma chave `service_role`. Nunca coloque a `service_role` dentro do app desktop.
+Uma assinatura ativa precisa ter:
 
-O botao `Assinar` abre a `BILLING_URL`. Ela pode ser um Stripe Payment Link, um checkout proprio, um portal do cliente ou uma pagina sua que inicia a cobranca.
+- `status` igual a `active` ou `trialing`;
+- `current_period_end` vazio ou no futuro.
+
+## Planos
+
+Plano pessoal:
+
+- libera apenas o usuario assinante.
+
+Plano empresarial:
+
+- pertence a uma organizacao;
+- o comprador deve entrar em `organization_memberships` com `role = 'owner'`;
+- permite convidar ate 10 pessoas alem do owner;
+- convidados ativos entram em `organization_memberships` como `member` e passam a ter acesso como se fosse um plano pessoal.
+
+## Convites por e-mail
+
+O app registra convites em `organization_invitations`, mas o envio real de e-mail deve ser feito por um backend confiavel:
+
+- Supabase Edge Function;
+- webhook/servidor proprio;
+- Stripe ou Mercado Pago integrado ao seu backend.
+
+Nunca coloque a `service_role` key dentro do app desktop.
 
 ## AutoHotkey
 
-O app procura AutoHotkey v2 nos caminhos comuns do Windows. Se nao encontrar, o botao `Instalar AutoHotkey` chama:
-
-```powershell
-winget install --id AutoHotkey.AutoHotkey --source winget
-```
+O app procura AutoHotkey v2 nos caminhos comuns do Windows. Se nao encontrar, o botao `Instalar AutoHotkey` abre o instalador oficial.
 
 O script roda a partir da pasta de dados do usuario do Electron. Use o botao `Abrir pasta` para ver ou ajustar `AutoScanner.ah` e `app.ini`.
 

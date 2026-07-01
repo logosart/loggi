@@ -29,12 +29,20 @@ function getRuntimeAutomationDir() {
   const dir = path.join(app.getPath('userData'), 'automation');
   fs.mkdirSync(dir, { recursive: true });
 
-  for (const fileName of ['AutoScanner.ah', 'app.ini']) {
-    const source = path.join(bundledAutomationDir, fileName);
-    const target = path.join(dir, fileName);
-    if (!fs.existsSync(target) && fs.existsSync(source)) {
-      fs.copyFileSync(source, target);
+  const scriptSource = path.join(bundledAutomationDir, 'AutoScanner.ah');
+  const scriptTarget = path.join(dir, 'AutoScanner.ah');
+  if (fs.existsSync(scriptSource)) {
+    const shouldCopyScript = !fs.existsSync(scriptTarget)
+      || fs.statSync(scriptSource).mtimeMs > fs.statSync(scriptTarget).mtimeMs;
+    if (shouldCopyScript) {
+      fs.copyFileSync(scriptSource, scriptTarget);
     }
+  }
+
+  const configSource = path.join(bundledAutomationDir, 'app.ini');
+  const configTarget = path.join(dir, 'app.ini');
+  if (!fs.existsSync(configTarget) && fs.existsSync(configSource)) {
+    fs.copyFileSync(configSource, configTarget);
   }
 
   return dir;
@@ -71,7 +79,7 @@ function createWindow() {
     height: 720,
     minWidth: 900,
     minHeight: 620,
-    title: 'AutoScanner',
+    title: 'Bipe Único',
     backgroundColor: '#f6f7f9',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -112,7 +120,7 @@ ipcMain.handle('automation:start', (_event, { subscriptionActive }) => {
 
   const ahkPath = findAutoHotkey();
   if (!ahkPath) {
-    throw new Error('AutoHotkey v2 nao encontrado. Instale pelo botao do app e tente novamente.');
+    throw new Error('AutoHotkey v2 não encontrado. Instale pelo botão do app e tente novamente.');
   }
 
   const automationDir = getRuntimeAutomationDir();

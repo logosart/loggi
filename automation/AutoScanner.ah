@@ -1,6 +1,7 @@
 ﻿#Requires AutoHotkey v2.0
 #SingleInstance Force
 A_ListLines := 0
+SetTitleMatchMode 2
 
 APP_DIR  := A_ScriptDir
 INI      := APP_DIR "\app.ini"
@@ -11,6 +12,8 @@ IniWrite(A_Now, INI, "license", "last_seen")
 
 SRC_TITLE := IniRead(INI, "windows", "source_title",  "Detail - Shopee Xpress System")
 DST_TITLE := IniRead(INI, "windows", "target_title",  "Detail - Shopee Xpress System")
+CODE_REGEX := IniRead(INI, "logic", "code_regex", "([A-Z]{2}\d{8,}[A-Z])")
+RETURN_SELECT_ALL := IniRead(INI, "behavior", "return_select_all", "1")
 
 ; ---------- LOG / UI ----------
 Log(msg) {
@@ -25,6 +28,13 @@ Notify(msg, ms := 1400) {
 
 ; ---------- UTIL ----------
 GetActiveHWND() => WinExist("A")
+
+ExtractCode(text) {
+    global CODE_REGEX
+    if RegExMatch(text, CODE_REGEX, &match)
+        return match[1]
+    return Trim(text)
+}
 
 GrabFieldText(hwnd) {
     clipSave := A_Clipboard
@@ -93,7 +103,8 @@ Enter::
     if !srcHwnd
         return
 
-    code := GrabFieldText(srcHwnd)
+    rawText := GrabFieldText(srcHwnd)
+    code := ExtractCode(rawText)
     if (code = "") {
         Log("INFO: Enter sem texto capturado.")
         return
@@ -110,13 +121,14 @@ Enter::
 
     WinActivate "ahk_id " srcHwnd
     if WinWaitActive("ahk_id " srcHwnd, , 1) {
-        Sleep 60
-        Send "^a"
-        Sleep 30
-        Send "{Backspace}"
-        Sleep 30
-        ; deixa o cursor pronto (sem seleção) para o próximo bip
-        Send "{End}"
+        if (RETURN_SELECT_ALL = "1") {
+            Sleep 60
+            Send "^a"
+            Sleep 30
+            Send "{Backspace}"
+            Sleep 30
+            Send "{End}"
+        }
     }
 
     Notify( ok ? ("OK: " code) : ("Registrado, destino fechado") )

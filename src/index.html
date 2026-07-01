@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https:; script-src 'self'; style-src 'self';" />
+    <title>AutoScanner</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <div class="brand">AutoScanner</div>
+          <div class="muted">Automação Shopee Xpress</div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="loginView">Conta</button>
+          <button class="nav-item" data-view="automationView">Automação</button>
+          <button class="nav-item" data-view="settingsView">Configuração</button>
+        </nav>
+        <div class="account-mini">
+          <div class="label">Sessão</div>
+          <strong id="sessionLabel">Desconectado</strong>
+        </div>
+      </aside>
+
+      <section class="content">
+        <section id="loginView" class="view active">
+          <div class="view-header">
+            <div>
+              <h1>Conta e assinatura</h1>
+              <p>Entre com o e-mail autorizado para liberar o uso da automação.</p>
+            </div>
+            <span id="subscriptionBadge" class="badge neutral">Não verificado</span>
+          </div>
+
+          <form id="authForm" class="panel">
+            <label>E-mail<input id="email" type="email" autocomplete="email" required /></label>
+            <label>Senha<input id="password" type="password" autocomplete="current-password" required /></label>
+            <div class="actions">
+              <button type="submit" class="primary">Entrar</button>
+              <button type="button" id="signupButton">Criar conta</button>
+              <button type="button" id="billingButton">Assinar</button>
+              <button type="button" id="logoutButton" class="ghost">Sair</button>
+            </div>
+          </form>
+
+          <div class="status-grid">
+            <div class="metric"><span>Usuário</span><strong id="userValue">-</strong></div>
+            <div class="metric"><span>Status</span><strong id="subscriptionValue">-</strong></div>
+            <div class="metric"><span>Validade</span><strong id="periodValue">-</strong></div>
+          </div>
+        </section>
+
+        <section id="automationView" class="view">
+          <div class="view-header">
+            <div>
+              <h1>Automação</h1>
+              <p>Controle o AutoHotkey que copia o código da tela de recebimento para a tela de detalhe.</p>
+            </div>
+            <span id="runnerBadge" class="badge neutral">Parado</span>
+          </div>
+
+          <div class="panel command-panel">
+            <div>
+              <div class="label">AutoHotkey</div>
+              <strong id="ahkPath">Não encontrado</strong>
+            </div>
+            <div class="actions">
+              <button id="installAhkButton">Instalar AutoHotkey</button>
+              <button id="startButton" class="primary">Iniciar</button>
+              <button id="stopButton">Parar</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="split-line">
+              <span>Pasta de execução</span>
+              <button id="openFolderButton" class="ghost">Abrir pasta</button>
+            </div>
+            <code id="automationDir">-</code>
+          </div>
+        </section>
+
+        <section id="settingsView" class="view">
+          <div class="view-header">
+            <div>
+              <h1>Configuração</h1>
+              <p>Confira apenas se a configuração pública do aplicativo foi carregada.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="setting-row"><span>Supabase</span><code id="supabaseUrlValue">-</code></div>
+            <div class="setting-row"><span>Tabela de assinatura</span><code id="subscriptionTableValue">subscriptions</code></div>
+            <div class="setting-row"><span>Cobrança</span><code id="billingUrlValue">-</code></div>
+            <div class="setting-row"><span>Arquivo esperado</span><code>.env</code></div>
+          </div>
+        </section>
+
+        <div id="toast" class="toast hidden"></div>
+      </section>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

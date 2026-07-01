@@ -1,0 +1,33 @@
+{
+  "name": "autoscanner-desktop",
+  "version": "0.1.0",
+  "description": "Desktop app for AutoScanner with Supabase login and subscription gating.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.autoscanner.desktop",
+    "productName": "AutoScanner",
+    "files": [
+      "src/**/*",
+      "automation/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "automation",
+        "to": "automation"
+      }
+    ],
+    "win": {
+      "target": "portable"
+    }
+  }
+}

@@ -1,0 +1,127 @@
+﻿#Requires AutoHotkey v2.0
+#SingleInstance Force
+A_ListLines := 0
+
+APP_DIR  := A_ScriptDir
+INI      := APP_DIR "\app.ini"
+LOG_DIR  := APP_DIR "\logs"
+DirCreate LOG_DIR
+
+IniWrite(A_Now, INI, "license", "last_seen")
+
+SRC_TITLE := IniRead(INI, "windows", "source_title",  "Detail - Shopee Xpress System")
+DST_TITLE := IniRead(INI, "windows", "target_title",  "Detail - Shopee Xpress System")
+
+; ---------- LOG / UI ----------
+Log(msg) {
+    global LOG_DIR
+    ts := FormatTime(, "yyyy/MM/dd - HH:mm:ss")
+    FileAppend ts " - " msg "`r`n", LOG_DIR "\" FormatTime(, "yyyyMMdd") ".log", "UTF-8"
+}
+Notify(msg, ms := 1400) {
+    ToolTip msg, , , 19
+    SetTimer(() => ToolTip(, , , 19), -ms)
+}
+
+; ---------- UTIL ----------
+GetActiveHWND() => WinExist("A")
+
+GrabFieldText(hwnd) {
+    clipSave := A_Clipboard
+    A_Clipboard := ""
+    WinActivate "ahk_id " hwnd
+    WinWaitActive "ahk_id " hwnd, , 1
+    Send "^a"
+    Sleep 40
+    Send "^c"
+    text := ""
+    if ClipWait(0.5)
+        text := A_Clipboard
+    A_Clipboard := clipSave
+    return Trim(text)
+}
+
+SendToTarget(text) {
+    if !text
+        return false
+
+
+    dstHwnd := WinExist(DST_TITLE)
+    if !dstHwnd {
+        Log("INFO: destino ausente: " DST_TITLE)
+        Notify("Destino não aberto — só registrei no recebimento")
+        return false
+    }
+
+    clipSave := A_Clipboard
+    A_Clipboard := text
+    ClipWait(0.05)
+
+
+    WinActivate "ahk_id " dstHwnd
+    if !WinWaitActive("ahk_id " dstHwnd, , 2) {
+        A_Clipboard := clipSave
+        Log("WARN: não consegui ativar destino: " DST_TITLE)
+        return false
+    }
+
+    Send "^a"
+    Sleep 30
+    Send "^v"
+    Sleep 50
+    Send "{Enter}"
+    Sleep 50
+    Send "{Enter down}"
+    Sleep 10
+    Send "{Enter up}"
+
+    A_Clipboard := clipSave
+    return true
+}
+
+#HotIf WinActive(SRC_TITLE)
+
+Enter::
+{
+    static debounce := 0
+    now := A_TickCount
+    if (now - debounce < 120)
+        return
+    debounce := now
+
+    srcHwnd := GetActiveHWND()
+    if !srcHwnd
+        return
+
+    code := GrabFieldText(srcHwnd)
+    if (code = "") {
+        Log("INFO: Enter sem texto capturado.")
+        return
+    }
+
+    Send "{Enter}"
+    Sleep 140
+
+    ok := SendToTarget(code)
+    if ok
+        Log(code)
+    else
+        Log("INFO: destino não recebeu (talvez fechado). Código: " code)
+
+    WinActivate "ahk_id " srcHwnd
+    if WinWaitActive("ahk_id " srcHwnd, , 1) {
+        Sleep 60
+        Send "^a"
+        Sleep 30
+        Send "{Backspace}"
+        Sleep 30
+        ; deixa o cursor pronto (sem seleção) para o próximo bip
+        Send "{End}"
+    }
+
+    Notify( ok ? ("OK: " code) : ("Registrado, destino fechado") )
+}
+return
+
+#HotIf
+; ---------- FIM ----------

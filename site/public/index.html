@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bipe Único | Automação para Shopee Xpress</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#inicio">
+        <span>BU</span>
+        <strong>Bipe Único</strong>
+      </a>
+      <nav>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#planos">Planos</a>
+        <a href="#entrar">Entrar</a>
+      </nav>
+      <a class="button secondary" id="downloadTopButton" href="/downloads/Bipe-Unico.exe">Baixar app</a>
+    </header>
+
+    <main>
+      <section id="inicio" class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Operação Shopee Xpress sem retrabalho</p>
+          <h1>Menos copia e cola. Mais pacotes expedidos por hora.</h1>
+          <p class="lead">O Bipe Único automatiza a ponte entre recebimento e expedição: o operador bipa uma vez, o sistema replica o código na tela certa e mantém o ritmo da esteira.</p>
+          <div class="hero-actions">
+            <a class="button primary" id="downloadHeroButton" href="/downloads/Bipe-Unico.exe">Baixar para Windows</a>
+            <a class="button secondary" href="#planos">Ver assinaturas</a>
+          </div>
+          <p class="note">Download gratuito. Para usar a automação, é necessário ter assinatura ativa.</p>
+        </div>
+        <div class="ops-panel" aria-label="Resumo operacional">
+          <div class="scan-line">
+            <span>Recebimento</span>
+            <strong>BR2489012345A</strong>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="scan-line success">
+            <span>Expedição</span>
+            <strong>Confirmado</strong>
+          </div>
+          <div class="ops-metrics">
+            <div><strong>1 bip</strong><span>por pacote</span></div>
+            <div><strong>F8</strong><span>fila por planilha</span></div>
+            <div><strong>Online</strong><span>licença validada</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="como-funciona" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Fluxo simples</p>
+          <h2>Feito para operador de logística, não para técnico.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <span>1</span>
+            <h3>Abra duas telas</h3>
+            <p>Recebimento de um lado, expedição ou detalhe do outro.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Bipe ou cole o código</h3>
+            <p>Pressione Enter e o app leva o código para a tela de destino.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Use planilhas quando precisar</h3>
+            <p>Importe XLSX, CSV ou TXT e envie o próximo código com F8.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="planos" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Sem plano gratuito</p>
+          <h2>Escolha o plano e libere a automação.</h2>
+        </div>
+        <div class="pricing-grid">
+          <article class="price-card">
+            <h3>Pessoal</h3>
+            <p>Para um operador ou uma estação de trabalho.</p>
+            <ul>
+              <li>Automação Shopee Xpress</li>
+              <li>Importação de planilhas</li>
+              <li>Ajuste de delays</li>
+            </ul>
+            <button class="button primary checkout-button" data-plan="personal">Assinar pessoal</button>
+          </article>
+          <article class="price-card highlighted">
+            <h3>Empresarial</h3>
+            <p>Para operação com equipe e múltiplos operadores.</p>
+            <ul>
+              <li>Todos os recursos do pessoal</li>
+              <li>Gestão de equipe</li>
+              <li>Convites para operadores</li>
+            </ul>
+            <button class="button primary checkout-button" data-plan="business">Assinar empresarial</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="entrar" class="section account-section">
+        <div>
+          <p class="eyebrow">Acesso do cliente</p>
+          <h2>Entre para comprar ou validar sua assinatura.</h2>
+          <p>Use o mesmo e-mail que será utilizado no aplicativo desktop.</p>
+        </div>
+        <form id="authForm" class="login-card">
+          <label>E-mail<input id="email" type="email" autocomplete="email" required /></label>
+          <label>Senha<input id="password" type="password" autocomplete="current-password" required /></label>
+          <button class="button primary" type="submit">Entrar</button>
+          <button class="button secondary" id="signupButton" type="button">Criar conta</button>
+          <p id="sessionMessage" class="form-message">Você precisa entrar antes de assinar.</p>
+        </form>
+      </section>
+    </main>
+
+    <footer>
+      <strong>Bipe Único</strong>
+      <span>Automação comercial para operações Shopee Xpress.</span>
+    </footer>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

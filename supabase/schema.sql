@@ -15,6 +15,9 @@ create table if not exists public.subscriptions (
   organization_id uuid references public.organizations(id) on delete cascade,
   plan_type text not null default 'personal',
   status text not null check (status in ('active', 'trialing', 'past_due', 'canceled', 'unpaid', 'incomplete')),
+  payment_provider text not null default 'manual',
+  abacatepay_customer_id text,
+  abacatepay_subscription_id text unique,
   stripe_customer_id text,
   stripe_subscription_id text unique,
   current_period_end timestamptz,
@@ -27,6 +30,29 @@ alter table public.subscriptions
 
 alter table public.subscriptions
   add column if not exists plan_type text not null default 'personal';
+
+alter table public.subscriptions
+  add column if not exists payment_provider text not null default 'manual';
+
+alter table public.subscriptions
+  add column if not exists abacatepay_customer_id text;
+
+alter table public.subscriptions
+  add column if not exists abacatepay_subscription_id text;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'subscriptions_abacatepay_subscription_id_key'
+      and conrelid = 'public.subscriptions'::regclass
+  ) then
+    alter table public.subscriptions
+      add constraint subscriptions_abacatepay_subscription_id_key
+      unique (abacatepay_subscription_id);
+  end if;
+end $$;
 
 do $$
 begin

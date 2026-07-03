@@ -4,122 +4,277 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https:; script-src 'self'; style-src 'self';" />
-    <title>Bipe Único</title>
+    <title>Bipe &Uacute;nico</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <aside class="sidebar">
         <div>
-          <div class="brand">Bipe Único</div>
-          <div class="muted">Automação Shopee Xpress</div>
+          <div class="brand-mark">BU</div>
+          <div class="brand">Bipe &Uacute;nico</div>
+          <div class="muted">Opera&ccedil;&atilde;o Shopee Xpress</div>
         </div>
+
         <nav class="nav">
-          <button class="nav-item active" data-view="loginView">Conta</button>
-          <button class="nav-item" data-view="automationView">Automação</button>
-          <button class="nav-item" data-view="teamView">Equipe</button>
-          <button class="nav-item" data-view="settingsView">Configuração</button>
+          <button class="nav-item auth-only hidden" data-view="automationView">Automa&ccedil;&atilde;o</button>
+          <button class="nav-item auth-only hidden" data-view="historyView">Hist&oacute;rico</button>
+          <button class="nav-item auth-only hidden" data-view="subscriptionView">Assinatura</button>
+          <button class="nav-item" data-view="accountView">Conta</button>
+          <button class="nav-item auth-only hidden" id="teamNavButton" data-view="teamView">Equipe</button>
         </nav>
+
         <div class="account-mini">
-          <div class="label">Sessão</div>
+          <div class="label">Sess&atilde;o</div>
           <strong id="sessionLabel">Desconectado</strong>
+          <span id="sidebarPlan">Sem plano ativo</span>
         </div>
       </aside>
 
       <section class="content">
-        <section id="loginView" class="view active">
+        <section id="automationView" class="view active">
           <div class="view-header">
             <div>
-              <h1>Conta e assinatura</h1>
-              <p>Entre com o e-mail autorizado para liberar o uso da automação.</p>
+              <div class="eyebrow">Esteira de bipagem</div>
+              <h1>Automa&ccedil;&atilde;o operacional</h1>
+              <p>Abra a tela de recebimento e a tela de expedi&ccedil;&atilde;o da Shopee. O Bipe &Uacute;nico copia o c&oacute;digo lido e cola no destino com os tempos configurados.</p>
             </div>
-            <span id="subscriptionBadge" class="badge neutral">Não verificado</span>
+            <span id="runnerBadge" class="badge neutral">Parado</span>
           </div>
 
-          <form id="authForm" class="panel">
+          <div class="operations-grid">
+            <section class="panel operation-card">
+              <div class="section-title">
+                <span class="step-number">1</span>
+                <div>
+                  <h2>Preparar as telas</h2>
+                  <p>Deixe duas janelas abertas: Recebimento para ler o c&oacute;digo e Expedi&ccedil;&atilde;o/Detalhe para colar e confirmar.</p>
+                </div>
+              </div>
+              <div class="screen-pair">
+                <div class="screen-chip">
+                  <span>Origem</span>
+                  <strong>Receive Task</strong>
+                  <small>campo onde voc&ecirc; bipa ou cola o c&oacute;digo</small>
+                </div>
+                <div class="screen-chip">
+                  <span>Destino</span>
+                  <strong>Detail</strong>
+                  <small>campo que recebe o c&oacute;digo automaticamente</small>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel operation-card">
+              <div class="section-title">
+                <span class="step-number">2</span>
+                <div>
+                  <h2>Rodar automa&ccedil;&atilde;o</h2>
+                  <p>Com a automa&ccedil;&atilde;o ligada, pressione Enter no recebimento. Para lista importada, o envio roda sozinho; F8 apenas retoma a fila se ela pausar.</p>
+                </div>
+              </div>
+              <div class="actions automation-actions">
+                <button id="installAhkButton">Instalar AutoHotkey</button>
+                <button id="startButton" class="primary">Iniciar</button>
+                <button id="stopButton">Parar</button>
+              </div>
+              <div class="runtime-line">
+                <span>AutoHotkey</span>
+                <strong id="ahkPath">N&atilde;o encontrado</strong>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="section-title compact">
+              <span class="step-number">3</span>
+              <div>
+                <h2>Planilha de c&oacute;digos</h2>
+                <p>Importe XLSX, CSV ou TXT com os c&oacute;digos. A automa&ccedil;&atilde;o cria uma fila e envia os c&oacute;digos automaticamente para a tela de destino.</p>
+              </div>
+            </div>
+            <div class="file-row">
+              <div>
+                <strong id="queueFileName">Nenhuma lista importada</strong>
+                <span id="queueCount">0 c&oacute;digos carregados</span>
+              </div>
+              <div class="actions">
+                <button id="importCodesButton">Importar lista</button>
+                <button id="clearCodesButton" class="ghost">Limpar lista</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title compact">
+              <span class="step-number">4</span>
+              <div>
+                <h2>Tempos de clique, c&oacute;pia e cola</h2>
+                <p>Aumente os tempos se a Shopee ou o computador estiverem lentos.</p>
+              </div>
+            </div>
+            <form id="automationConfigForm" class="settings-grid">
+              <label>Copiar c&oacute;digo (ms)<input id="copyDelayInput" type="number" min="20" max="2000" step="10" /></label>
+              <label>Colar no destino (ms)<input id="pasteDelayInput" type="number" min="20" max="2000" step="10" /></label>
+              <label>Confirmar Enter (ms)<input id="enterDelayInput" type="number" min="20" max="2500" step="10" /></label>
+              <label>Voltar para origem (ms)<input id="returnDelayInput" type="number" min="20" max="2500" step="10" /></label>
+              <label>Intervalo entre c&oacute;digos (ms)<input id="queueIntervalInput" type="number" min="100" max="10000" step="50" /></label>
+              <label class="toggle-row"><input id="returnSelectAllInput" type="checkbox" /> selecionar campo ao voltar</label>
+              <div class="actions align-end">
+                <button type="submit" class="primary">Salvar tempos</button>
+                <button type="button" id="openFolderButton" class="ghost">Abrir pasta t&eacute;cnica</button>
+              </div>
+            </form>
+          </section>
+        </section>
+
+        <section id="historyView" class="view">
+          <div class="view-header">
+            <div>
+              <div class="eyebrow">Auditoria operacional</div>
+              <h1>Hist&oacute;rico de c&oacute;digos</h1>
+              <p>Consulte tudo que foi enviado pela automa&ccedil;&atilde;o, filtre por per&iacute;odo, origem, status ou c&oacute;digo e exporte para Excel.</p>
+            </div>
+            <span id="historyCountBadge" class="badge neutral">0 registros</span>
+          </div>
+
+          <section class="panel history-filters">
+            <label>Pesquisar
+              <input id="historySearchInput" type="search" placeholder="C&oacute;digo, origem ou status" />
+            </label>
+            <label>De
+              <input id="historyFromInput" type="date" />
+            </label>
+            <label>At&eacute;
+              <input id="historyToInput" type="date" />
+            </label>
+            <label>Origem
+              <select id="historySourceInput">
+                <option value="">Todas</option>
+                <option value="manual">Manual</option>
+                <option value="planilha">Planilha</option>
+              </select>
+            </label>
+            <label>Status
+              <select id="historyStatusInput">
+                <option value="">Todos</option>
+                <option value="enviado">Enviado</option>
+                <option value="destino_fechado">Destino fechado</option>
+              </select>
+            </label>
+            <div class="actions align-end">
+              <button id="refreshHistoryButton" type="button">Atualizar</button>
+              <button id="exportHistoryButton" type="button" class="primary">Exportar Excel</button>
+            </div>
+          </section>
+
+          <section class="panel history-table-panel">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>C&oacute;digo</th>
+                  <th>Origem</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr>
+                  <td colspan="4">Nenhum registro encontrado.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
+
+        <section id="accountView" class="view">
+          <div class="view-header">
+            <div>
+              <div class="eyebrow">Acesso</div>
+              <h1>Conta</h1>
+              <p id="accountSubtitle">Entre com o e-mail autorizado para acessar o Bipe &Uacute;nico.</p>
+            </div>
+            <span id="accountBadge" class="badge neutral">N&atilde;o conectado</span>
+          </div>
+
+          <form id="authForm" class="panel auth-card">
             <label>E-mail<input id="email" type="email" autocomplete="email" required /></label>
             <label>Senha<input id="password" type="password" autocomplete="current-password" required /></label>
             <div class="actions">
               <button type="submit" class="primary">Entrar</button>
               <button type="button" id="signupButton">Criar conta</button>
-              <button type="button" id="billingButton">Assinar</button>
-              <button type="button" id="logoutButton" class="ghost">Sair</button>
             </div>
           </form>
 
-          <div class="status-grid">
-            <div class="metric"><span>Usuário</span><strong id="userValue">-</strong></div>
-            <div class="metric"><span>Plano</span><strong id="planValue">-</strong></div>
-            <div class="metric"><span>Validade</span><strong id="periodValue">-</strong></div>
-          </div>
+          <section id="accountSummary" class="panel account-summary hidden">
+            <div>
+              <span>Usu&aacute;rio conectado</span>
+              <strong id="userValue">-</strong>
+            </div>
+            <button type="button" id="logoutButton" class="ghost">Sair da conta</button>
+          </section>
         </section>
 
-        <section id="automationView" class="view">
+        <section id="subscriptionView" class="view">
           <div class="view-header">
             <div>
-              <h1>Automação</h1>
-              <p>Controle o AutoHotkey que copia o código da tela de recebimento para a tela de detalhe.</p>
+              <div class="eyebrow">Assinatura</div>
+              <h1>Plano de acesso</h1>
+              <p>Gerencie o plano que libera a automa&ccedil;&atilde;o neste computador.</p>
             </div>
-            <span id="runnerBadge" class="badge neutral">Parado</span>
+            <span id="subscriptionBadge" class="badge neutral">N&atilde;o verificado</span>
           </div>
 
-          <div class="panel command-panel">
-            <div>
-              <div class="label">AutoHotkey</div>
-              <strong id="ahkPath">Não encontrado</strong>
+          <section class="panel status-grid">
+            <div class="metric">
+              <span>Plano</span>
+              <strong id="planValue">-</strong>
+            </div>
+            <div class="metric">
+              <span>Validade</span>
+              <strong id="periodValue">-</strong>
+            </div>
+            <div class="metric">
+              <span>Status</span>
+              <strong id="subscriptionStatusValue">-</strong>
+            </div>
+          </section>
+
+          <section id="billingPanel" class="panel">
+            <div class="section-title compact">
+              <div>
+                <h2>Assinatura</h2>
+                <p>Escolha um plano para liberar a automa&ccedil;&atilde;o neste computador.</p>
+              </div>
             </div>
             <div class="actions">
-              <button id="installAhkButton">Instalar AutoHotkey</button>
-              <button id="startButton" class="primary">Iniciar</button>
-              <button id="stopButton">Parar</button>
+              <button type="button" id="personalBillingButton" class="primary">Assinar pessoal</button>
+              <button type="button" id="businessBillingButton">Assinar empresarial</button>
             </div>
-          </div>
-
-          <div class="panel">
-            <div class="split-line">
-              <span>Pasta de execução</span>
-              <button id="openFolderButton" class="ghost">Abrir pasta</button>
-            </div>
-            <code id="automationDir">-</code>
-          </div>
+          </section>
         </section>
 
         <section id="teamView" class="view">
           <div class="view-header">
             <div>
+              <div class="eyebrow">Plano empresarial</div>
               <h1>Equipe</h1>
-              <p>Convites ficam disponíveis para assinantes do plano empresarial.</p>
+              <p>Convide operadores somente quando a assinatura empresarial estiver ativa.</p>
             </div>
-            <span id="teamBadge" class="badge neutral">Plano pessoal</span>
+            <span id="teamBadge" class="badge neutral">Empresarial</span>
           </div>
 
           <form id="inviteForm" class="panel">
-            <label>E-mail do convidado<input id="inviteEmail" type="email" autocomplete="email" required /></label>
+            <label>E-mail do operador<input id="inviteEmail" type="email" autocomplete="email" required /></label>
             <div class="actions">
               <button type="submit" id="inviteButton" class="primary">Enviar convite</button>
             </div>
           </form>
 
           <div class="status-grid">
-            <div class="metric"><span>Organização</span><strong id="organizationValue">-</strong></div>
+            <div class="metric"><span>Organiza&ccedil;&atilde;o</span><strong id="organizationValue">-</strong></div>
             <div class="metric"><span>Vagas usadas</span><strong id="seatsValue">-</strong></div>
             <div class="metric"><span>Convites pendentes</span><strong id="pendingInvitesValue">-</strong></div>
-          </div>
-        </section>
-
-        <section id="settingsView" class="view">
-          <div class="view-header">
-            <div>
-              <h1>Configuração</h1>
-              <p>Confira apenas se a configuração pública do aplicativo foi carregada.</p>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="setting-row"><span>Supabase</span><code id="supabaseUrlValue">-</code></div>
-            <div class="setting-row"><span>Tabela de assinatura</span><code id="subscriptionTableValue">subscriptions</code></div>
-            <div class="setting-row"><span>Cobrança</span><code id="billingUrlValue">-</code></div>
-            <div class="setting-row"><span>Arquivo esperado</span><code>.env</code></div>
           </div>
         </section>
 

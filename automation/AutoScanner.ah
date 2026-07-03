@@ -6,6 +6,8 @@ SetTitleMatchMode 2
 APP_DIR  := A_ScriptDir
 INI      := APP_DIR "\app.ini"
 LOG_DIR  := APP_DIR "\logs"
+QUEUE    := APP_DIR "\codes.txt"
+HISTORY  := APP_DIR "\history.csv"
 DirCreate LOG_DIR
 
 IniWrite(A_Now, INI, "license", "last_seen")
@@ -14,6 +16,13 @@ SRC_TITLE := IniRead(INI, "windows", "source_title",  "Detail - Shopee Xpress Sy
 DST_TITLE := IniRead(INI, "windows", "target_title",  "Detail - Shopee Xpress System")
 CODE_REGEX := IniRead(INI, "logic", "code_regex", "([A-Z]{2}\d{8,}[A-Z])")
 RETURN_SELECT_ALL := IniRead(INI, "behavior", "return_select_all", "1")
+COPY_DELAY := Integer(IniRead(INI, "behavior", "copy_delay_ms", "80"))
+PASTE_DELAY := Integer(IniRead(INI, "behavior", "paste_delay_ms", "80"))
+ENTER_DELAY := Integer(IniRead(INI, "behavior", "enter_delay_ms", "120"))
+RETURN_DELAY := Integer(IniRead(INI, "behavior", "return_delay_ms", "80"))
+QUEUE_INTERVAL := Integer(IniRead(INI, "behavior", "queue_interval_ms", "500"))
+QUEUE_ACTIVE := false
+QUEUE_PAUSED := false
 
 ; ---------- LOG / UI ----------
 Log(msg) {
@@ -24,6 +33,27 @@ Log(msg) {
 Notify(msg, ms := 1400) {
     ToolTip msg, , , 19
     SetTimer(() => ToolTip(, , , 19), -ms)
+}
+
+Csv(value) {
+    value := StrReplace(String(value), '"', '""')
+    return '"' value '"'
+}
+
+EnsureHistory() {
+    global HISTORY
+    if !FileExist(HISTORY) {
+        header := Csv("Data") "," Csv("Origem") "," Csv("Codigo") "," Csv("Status") "`r`n"
+        FileAppend header, HISTORY, "UTF-8"
+    }
+}
+
+AddHistory(code, origin, status) {
+    global HISTORY
+    EnsureHistory()
+    ts := FormatTime(, "yyyy-MM-dd HH:mm:ss")
+    row := Csv(ts) "," Csv(origin) "," Csv(code) "," Csv(status) "`r`n"
+    FileAppend row, HISTORY, "UTF-8"
 }
 
 ; ---------- UTIL ----------
@@ -37,12 +67,13 @@ ExtractCode(text) {
 }
 
 GrabFieldText(hwnd) {
+    global COPY_DELAY
     clipSave := A_Clipboard
     A_Clipboard := ""
     WinActivate "ahk_id " hwnd
     WinWaitActive "ahk_id " hwnd, , 1
     Send "^a"
-    Sleep 40
+    Sleep COPY_DELAY
     Send "^c"
     text := ""
     if ClipWait(0.5)
@@ -52,6 +83,7 @@ GrabFieldText(hwnd) {
 }
 
 SendToTarget(text) {
+    global DST_TITLE, PASTE_DELAY, ENTER_DELAY
     if !text
         return false
 
@@ -76,17 +108,112 @@ SendToTarget(text) {
     }
 
     Send "^a"
-    Sleep 30
+    Sleep PASTE_DELAY
     Send "^v"
-    Sleep 50
+    Sleep ENTER_DELAY
     Send "{Enter}"
-    Sleep 50
+    Sleep ENTER_DELAY
     Send "{Enter down}"
     Sleep 10
     Send "{Enter up}"
 
     A_Clipboard := clipSave
     return true
+}
+
+ReadQueueLines() {
+    global QUEUE
+    lines := []
+    if !FileExist(QUEUE)
+        return lines
+
+    content := FileRead(QUEUE, "UTF-8")
+    for line in StrSplit(content, "`n", "`r") {
+        item := Trim(line)
+        if (item = "")
+            continue
+        lines.Push(item)
+    }
+    return lines
+}
+
+WriteQueueLines(lines) {
+    global QUEUE
+    output := ""
+    for item in lines
+        output .= item "`n"
+    FileDelete QUEUE
+    FileAppend output, QUEUE, "UTF-8"
+}
+
+PeekQueuedCode() {
+    lines := ReadQueueLines()
+    return lines.Length ? lines[1] : ""
+}
+
+ConsumeQueuedCode(expectedCode) {
+    lines := ReadQueueLines()
+    if (!lines.Length || lines[1] != expectedCode)
+        return false
+    lines.RemoveAt(1)
+    WriteQueueLines(lines)
+    return true
+}
+
+ProcessQueuedCode(manual := false) {
+    global QUEUE_ACTIVE, QUEUE_PAUSED, QUEUE_INTERVAL
+    code := PeekQueuedCode()
+    if (code = "") {
+        QUEUE_ACTIVE := false
+        QUEUE_PAUSED := false
+        if manual
+            Notify("Lista vazia. Importe codigos no Bipe Unico.")
+        return
+    }
+
+    ok := SendToTarget(code)
+    if ok {
+        ConsumeQueuedCode(code)
+        Log("FILA: " code)
+        AddHistory(code, "planilha", "enviado")
+        Notify("OK fila: " code)
+
+        if (PeekQueuedCode() != "") {
+            SetTimer(ProcessQueuedCode, -QUEUE_INTERVAL)
+        } else {
+            QUEUE_ACTIVE := false
+            QUEUE_PAUSED := false
+            Notify("Lista finalizada")
+        }
+        return
+    }
+
+    QUEUE_ACTIVE := false
+    QUEUE_PAUSED := true
+    Log("FILA pausada sem destino: " code)
+    AddHistory(code, "planilha", "destino_fechado")
+    Notify("Destino nao aberto. Fila pausada.")
+}
+
+WatchQueue() {
+    global QUEUE_ACTIVE, QUEUE_PAUSED
+    if QUEUE_ACTIVE || QUEUE_PAUSED
+        return
+
+    if (PeekQueuedCode() != "") {
+        QUEUE_ACTIVE := true
+        ProcessQueuedCode()
+    }
+}
+
+SetTimer(WatchQueue, 1000)
+
+F8::
+{
+    global QUEUE_ACTIVE, QUEUE_PAUSED
+    QUEUE_PAUSED := false
+    QUEUE_ACTIVE := true
+    ProcessQueuedCode(true)
 }
 
 #HotIf WinActive(SRC_TITLE)
@@ -111,29 +238,31 @@ Enter::
     }
 
     Send "{Enter}"
-    Sleep 140
+    Sleep ENTER_DELAY
 
     ok := SendToTarget(code)
-    if ok
+    if ok {
         Log(code)
-    else
+        AddHistory(code, "manual", "enviado")
+    } else {
         Log("INFO: destino não recebeu (talvez fechado). Código: " code)
+        AddHistory(code, "manual", "destino_fechado")
+    }
 
     WinActivate "ahk_id " srcHwnd
     if WinWaitActive("ahk_id " srcHwnd, , 1) {
         if (RETURN_SELECT_ALL = "1") {
-            Sleep 60
+            Sleep RETURN_DELAY
             Send "^a"
-            Sleep 30
+            Sleep COPY_DELAY
             Send "{Backspace}"
-            Sleep 30
+            Sleep COPY_DELAY
             Send "{End}"
         }
     }
 
     Notify( ok ? ("OK: " code) : ("Registrado, destino fechado") )
 }
-return
 
 #HotIf
 ; ---------- FIM ----------

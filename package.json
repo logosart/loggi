@@ -1,10 +1,13 @@
 {
   "name": "bipe-unico-desktop",
-  "version": "0.1.0",
+  "version": "0.1.8",
   "description": "Desktop app for Bipe Unico with Supabase login and subscription gating.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "prepare:config": "node scripts/prepare-public-config.js",
+    "test-user:create": "node scripts/create-test-user.js",
+    "prebuild": "npm run prepare:config",
     "build": "electron-builder --win portable"
   },
   "license": "UNLICENSED",
@@ -13,7 +16,7 @@
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.bikeunico.desktop",
+    "appId": "com.bipeunico.desktop",
     "productName": "Bipe Único",
     "files": [
       "src/**/*",
@@ -29,5 +32,8 @@
     "win": {
       "target": "portable"
     }
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
   }
 }

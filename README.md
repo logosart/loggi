@@ -24,6 +24,8 @@ BILLING_URL=https://seu-checkout-ou-portal-de-assinatura
 
 Execute `supabase/schema.sql` no SQL Editor do Supabase.
 
+A partir da versao `0.1.10`, esse schema tambem cria o controle de dispositivo unico por conta (`account_device_leases` e RPCs de lease). Aplique o SQL remoto antes de distribuir o executavel, senao o login do app vai bloquear avisando que o controle de dispositivo nao esta configurado.
+
 O app libera a automacao quando existe:
 
 - plano pessoal ativo para o proprio usuario; ou

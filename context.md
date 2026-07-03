@@ -4,27 +4,26 @@ Este arquivo e a memoria tecnica do projeto. Sempre que uma funcionalidade impor
 
 ## Objetivo do Produto
 
-Bipe Unico e um app desktop para operacoes Shopee Xpress.
+Bipe Unico e um app desktop para automacao local de operacoes logisticas repetitivas.
 
-O objetivo e reduzir retrabalho operacional em esteiras de bipagem:
+O objetivo e reduzir retrabalho operacional entre duas telas configuradas pelo cliente:
 
-- o operador abre a tela de recebimento da Shopee;
-- abre a tela de expedicao/detalhe da Shopee;
-- bipa ou cola um codigo na tela de recebimento;
+- o operador configura uma tela de origem e uma tela de destino;
+- bipa ou cola um codigo na tela de origem;
 - a automacao copia o codigo e cola/confirma na tela de destino;
-- tambem existe fila por planilha para enviar o proximo codigo com atalho.
+- tambem existe fila por planilha para enviar codigos automaticamente.
 - todo codigo processado entra no historico local com data/hora, origem e status.
 
 Nao existe plano gratuito. O download do software pode ser gratuito, mas o uso da automacao exige assinatura ativa.
 
 ## Estado Atual
 
-Versao atual do desktop: `0.1.8`.
+Versao atual do desktop: `0.1.10`.
 
 Executavel atual:
 
 ```text
-dist/Bipe Único 0.1.8.exe
+dist/Bipe Único 0.1.10.exe
 ```
 
 Copia para download no site:
@@ -58,6 +57,18 @@ Plano futuro:
 - fazer o app chamar o runner C#;
 - manter validacao de assinatura online antes de liberar automacao;
 - nunca colocar secrets no cliente.
+
+## Decisao de Compliance e Marketing
+
+O produto deve ser posicionado como ferramenta generica de automacao local para operacoes repetitivas.
+
+Regras de comunicacao:
+
+- nao usar nomes, logos, prints ou promessas de integracao oficial com plataformas de terceiros sem autorizacao formal;
+- nao afirmar compatibilidade oficial com marketplaces, ERPs, transportadoras ou sistemas de terceiros;
+- deixar claro que o cliente deve usar a automacao apenas onde possui autorizacao e respeitando termos aplicaveis;
+- nao implementar recurso para burlar captcha, bloqueio, limite tecnico, antifraude, autenticacao ou controle de seguranca;
+- manter a configuracao de origem/destino como titulo parcial de janela, definida pelo cliente.
 
 ## Segredos e Configuracao
 
@@ -130,14 +141,14 @@ Regra de versao:
 
 ## Fluxo Atual da Automacao
 
-A automacao voltou a usar os titulos padrao da Shopee, sem captura manual de janela.
+A automacao usa titulos parciais de janela configurados pelo cliente.
 
-Titulos padrao:
+Titulos padrao genericos:
 
 ```ini
 [windows]
-source_title = Receive Task - Shopee Xpress
-target_title = Detail - Shopee Xpress
+source_title = Origem
+target_title = Destino
 ```
 
 Esses valores ficam em:
@@ -146,7 +157,7 @@ Esses valores ficam em:
 automation/app.ini
 ```
 
-O app tambem restaura automaticamente esses titulos no `app.ini` da pasta de dados do usuario, para evitar que testes antigos com Brave fiquem gravados.
+O app permite configurar esses titulos na tela de automacao e salva os valores no `app.ini` da pasta de dados do usuario.
 
 Atalho principal:
 
@@ -179,6 +190,8 @@ Fluxo:
 
 No app desktop, o usuario pode configurar delays:
 
+- titulo parcial da tela de origem;
+- titulo parcial da tela de destino;
 - copiar codigo;
 - colar no destino;
 - confirmar Enter;
@@ -186,6 +199,12 @@ No app desktop, o usuario pode configurar delays:
 - selecionar campo ao voltar.
 
 Esses valores sao salvos no `app.ini` em:
+
+```ini
+[windows]
+source_title = Origem
+target_title = Destino
+```
 
 ```ini
 [behavior]
@@ -308,6 +327,24 @@ O app tem compatibilidade parcial com schema antigo:
 
 - se `plan_type` nao existir, assume `personal`;
 - se tabelas de equipe nao existirem, ignora equipe.
+
+## Bloqueio de Compartilhamento de Conta
+
+A partir da versao `0.1.10`, uma conta autenticada so pode manter um computador ativo por vez.
+
+Implementacao:
+
+- o desktop gera um `device_id` local opaco por hash;
+- no Windows, o hash usa `MachineGuid` quando disponivel;
+- o Supabase armazena apenas o hash, nao o identificador cru da maquina;
+- a tabela `account_device_leases` guarda o lease ativo por usuario;
+- a RPC `register_account_device` cria/renova o lease por 3 minutos;
+- o app renova o lease a cada 60 segundos enquanto a sessao estiver ativa;
+- se outro computador tentar usar a mesma conta antes do lease expirar, recebe bloqueio;
+- `release_account_device` tenta liberar o lease no logout;
+- se o app fechar sem logout, o lease expira automaticamente em alguns minutos.
+
+Importante: aplicar `supabase/schema.sql` no Supabase remoto antes de distribuir essa versao.
 
 ## Equipe
 
@@ -507,8 +544,8 @@ Ou para um link externo.
 ### 0.1.4
 
 - removida captura manual de janela;
-- restaurado fluxo automatico Shopee por titulos padrao;
-- app força `source_title` e `target_title` padrao no `app.ini`;
+- restaurado fluxo automatico por titulos padrao;
+- app forcava `source_title` e `target_title` padrao no `app.ini`;
 - mantido bugfix `global DST_TITLE`;
 - atualizado download do site.
 
@@ -545,13 +582,27 @@ Ou para um link externo.
 - se a tela de destino estiver fechada, a fila pausa e mantem o codigo atual para evitar perder a planilha;
 - textos da tela de automacao foram atualizados para explicar que `F8` agora serve como retomada/manual.
 
+### 0.1.9
+
+- reposicionado produto/site/app como ferramenta generica de automacao local para operacoes logisticas;
+- removidas referencias diretas a plataforma especifica do site, UI desktop, defaults do AHK e defaults do Electron;
+- origem e destino passaram a ser configurados pelo cliente por titulo parcial de janela;
+- adicionada pagina `site/public/termos.html` com regras de uso responsavel e ausencia de afiliacao oficial;
+- documentada decisao de compliance: nao prometer integracao oficial nem burlar mecanismos de seguranca de terceiros.
+
+### 0.1.10
+
+- adicionada tabela `account_device_leases` no schema Supabase;
+- adicionadas RPCs `register_account_device` e `release_account_device`;
+- app desktop passou a gerar `device_id` local com hash e nome do computador;
+- login/restauracao de sessao agora validam que a conta nao esta ativa em outro PC;
+- heartbeat renova o lease a cada 60 segundos;
+- inicio da automacao renova o lease antes de executar;
+- logout tenta liberar o dispositivo atual.
+
 ## Pendencias e Proximos Passos
 
-- Testar o fluxo real dentro das telas Shopee.
-- Confirmar se os titulos reais das janelas Shopee batem exatamente com:
-  - `Receive Task - Shopee Xpress`
-  - `Detail - Shopee Xpress`
-- Se os titulos reais forem diferentes, ajustar os padroes em `automation/app.ini` e `src/main.js`.
+- Testar o fluxo real com os titulos de origem/destino configurados pelo cliente.
 - Aplicar `supabase/schema.sql` no Supabase remoto.
 - Configurar secrets das Edge Functions.
 - Testar checkout AbacatePay completo.

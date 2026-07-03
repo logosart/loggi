@@ -110,6 +110,8 @@ p { color: #526174; line-height: 1.65; }
 
 .section { padding: 72px 6vw; }
 .section-heading { max-width: 780px; margin-bottom: 28px; }
+.terms-section { display: grid; gap: 16px; }
+.terms-section .section-heading { margin-bottom: 12px; }
 .feature-grid, .pricing-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

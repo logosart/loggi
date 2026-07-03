@@ -12,8 +12,8 @@ DirCreate LOG_DIR
 
 IniWrite(A_Now, INI, "license", "last_seen")
 
-SRC_TITLE := IniRead(INI, "windows", "source_title",  "Detail - Shopee Xpress System")
-DST_TITLE := IniRead(INI, "windows", "target_title",  "Detail - Shopee Xpress System")
+SRC_TITLE := IniRead(INI, "windows", "source_title",  "Origem")
+DST_TITLE := IniRead(INI, "windows", "target_title",  "Destino")
 CODE_REGEX := IniRead(INI, "logic", "code_regex", "([A-Z]{2}\d{8,}[A-Z])")
 RETURN_SELECT_ALL := IniRead(INI, "behavior", "return_select_all", "1")
 COPY_DELAY := Integer(IniRead(INI, "behavior", "copy_delay_ms", "80"))

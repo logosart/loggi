@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('desktopApi', {
   getConfig: () => ipcRenderer.invoke('app:get-config'),
+  getDevice: () => ipcRenderer.invoke('app:get-device'),
   getAutomationStatus: () => ipcRenderer.invoke('automation:get-status'),
   getAutomationConfig: () => ipcRenderer.invoke('automation:get-config'),
   saveAutomationConfig: (payload) => ipcRenderer.invoke('automation:save-config', payload),

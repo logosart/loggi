@@ -13,7 +13,7 @@
         <div>
           <div class="brand-mark">BU</div>
           <div class="brand">Bipe &Uacute;nico</div>
-          <div class="muted">Opera&ccedil;&atilde;o Shopee Xpress</div>
+          <div class="muted">Automa&ccedil;&atilde;o operacional</div>
         </div>
 
         <nav class="nav">
@@ -35,9 +35,9 @@
         <section id="automationView" class="view active">
           <div class="view-header">
             <div>
-              <div class="eyebrow">Esteira de bipagem</div>
+              <div class="eyebrow">Opera&ccedil;&atilde;o log&iacute;stica</div>
               <h1>Automa&ccedil;&atilde;o operacional</h1>
-              <p>Abra a tela de recebimento e a tela de expedi&ccedil;&atilde;o da Shopee. O Bipe &Uacute;nico copia o c&oacute;digo lido e cola no destino com os tempos configurados.</p>
+              <p>Abra a tela de origem e a tela de destino do seu sistema operacional. O Bipe &Uacute;nico copia o c&oacute;digo lido e cola no destino com os tempos configurados.</p>
             </div>
             <span id="runnerBadge" class="badge neutral">Parado</span>
           </div>
@@ -48,18 +48,18 @@
                 <span class="step-number">1</span>
                 <div>
                   <h2>Preparar as telas</h2>
-                  <p>Deixe duas janelas abertas: Recebimento para ler o c&oacute;digo e Expedi&ccedil;&atilde;o/Detalhe para colar e confirmar.</p>
+                  <p>Deixe duas janelas abertas: origem para ler o c&oacute;digo e destino para colar e confirmar.</p>
                 </div>
               </div>
               <div class="screen-pair">
                 <div class="screen-chip">
                   <span>Origem</span>
-                  <strong>Receive Task</strong>
+                  <strong>Tela de origem</strong>
                   <small>campo onde voc&ecirc; bipa ou cola o c&oacute;digo</small>
                 </div>
                 <div class="screen-chip">
                   <span>Destino</span>
-                  <strong>Detail</strong>
+                  <strong>Tela de destino</strong>
                   <small>campo que recebe o c&oacute;digo automaticamente</small>
                 </div>
               </div>
@@ -110,10 +110,12 @@
               <span class="step-number">4</span>
               <div>
                 <h2>Tempos de clique, c&oacute;pia e cola</h2>
-                <p>Aumente os tempos se a Shopee ou o computador estiverem lentos.</p>
+                <p>Aumente os tempos se o sistema operacional ou o computador estiverem lentos.</p>
               </div>
             </div>
             <form id="automationConfigForm" class="settings-grid">
+              <label>T&iacute;tulo parcial da origem<input id="sourceTitleInput" type="text" maxlength="120" /></label>
+              <label>T&iacute;tulo parcial do destino<input id="targetTitleInput" type="text" maxlength="120" /></label>
               <label>Copiar c&oacute;digo (ms)<input id="copyDelayInput" type="number" min="20" max="2000" step="10" /></label>
               <label>Colar no destino (ms)<input id="pasteDelayInput" type="number" min="20" max="2000" step="10" /></label>
               <label>Confirmar Enter (ms)<input id="enterDelayInput" type="number" min="20" max="2500" step="10" /></label>

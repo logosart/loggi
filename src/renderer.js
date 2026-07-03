@@ -14,7 +14,9 @@ const state = {
     pendingInvites: null
   },
   automation: null,
-  history: []
+  history: [],
+  device: null,
+  deviceLeaseTimer: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -82,6 +84,13 @@ function getFriendlyError(error) {
   if (message.includes('User already registered')) return 'Este e-mail já tem uma conta. Use Entrar.';
   if (message.includes('duplicate key')) return 'Este convite já existe para esta organização.';
   if (message.includes('violates row-level security')) return 'Você não tem permissão para executar esta ação.';
+  if (message.includes('DEVICE_IN_USE')) {
+    const deviceName = message.split(':').slice(1).join(':') || 'outro computador';
+    return `Esta conta já está em uso em ${deviceName}. Feche o app nesse computador e tente novamente em alguns minutos.`;
+  }
+  if (message.includes('register_account_device') || message.includes('account_device_leases')) {
+    return 'Controle de dispositivo não configurado no Supabase. Aplique o schema atualizado antes de usar o app.';
+  }
 
   return message;
 }
@@ -117,6 +126,75 @@ async function supabaseFetch(path, options = {}) {
 function saveSession(session) {
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   window.localStorage.removeItem(LEGACY_SESSION_KEY);
+}
+
+async function getDevice() {
+  if (!state.device) state.device = await window.desktopApi.getDevice();
+  return state.device;
+}
+
+async function registerDeviceLease() {
+  if (!state.user || !state.session?.access_token) return null;
+
+  const device = await getDevice();
+  const result = await supabaseFetch('/rest/v1/rpc/register_account_device', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_device_id: device.id,
+      p_device_name: device.name
+    })
+  });
+  const lease = Array.isArray(result) ? result[0] : result;
+
+  if (!lease?.allowed) {
+    throw new Error(`DEVICE_IN_USE:${lease?.active_device_name || 'outro computador'}`);
+  }
+
+  return lease;
+}
+
+async function releaseDeviceLease() {
+  if (!state.user || !state.session?.access_token || !state.device?.id) return;
+
+  try {
+    await supabaseFetch('/rest/v1/rpc/release_account_device', {
+      method: 'POST',
+      body: JSON.stringify({ p_device_id: state.device.id })
+    });
+  } catch {
+    // Best effort only. The lease expires automatically if release fails.
+  }
+}
+
+function stopDeviceHeartbeat() {
+  if (state.deviceLeaseTimer) {
+    window.clearInterval(state.deviceLeaseTimer);
+    state.deviceLeaseTimer = null;
+  }
+}
+
+function startDeviceHeartbeat() {
+  stopDeviceHeartbeat();
+  state.deviceLeaseTimer = window.setInterval(async () => {
+    try {
+      await registerDeviceLease();
+    } catch (error) {
+      await window.desktopApi.stopAutomation();
+      logout({ silent: true, release: false });
+      showView('accountView');
+      showToast(getFriendlyError(error));
+    }
+  }, 60000);
+}
+
+async function activateDeviceSession() {
+  try {
+    await registerDeviceLease();
+    startDeviceHeartbeat();
+  } catch (error) {
+    logout({ silent: true, release: false });
+    throw error;
+  }
 }
 
 async function refreshSessionIfNeeded() {
@@ -156,6 +234,7 @@ async function signIn(email, password) {
   state.session = result;
   state.user = result.user;
   saveSession(result);
+  await activateDeviceSession();
   await refreshAccess();
   render();
   showView(isSubscriptionActive(state.subscription) ? 'automationView' : 'subscriptionView');
@@ -173,9 +252,15 @@ async function signUp(email, password) {
     saveSession(result);
   }
 
-  await refreshAccess();
-  render();
-  if (state.user) showView('subscriptionView');
+  if (state.user) {
+    await activateDeviceSession();
+    await refreshAccess();
+    render();
+    showView('subscriptionView');
+  } else {
+    await refreshAccess();
+    render();
+  }
 }
 
 function normalizeSubscription(row) {
@@ -364,6 +449,11 @@ function restoreSession() {
 }
 
 function logout(options = {}) {
+  if (options.release !== false) {
+    releaseDeviceLease();
+  }
+  stopDeviceHeartbeat();
+  window.desktopApi.stopAutomation();
   state.session = null;
   state.user = null;
   state.subscription = null;
@@ -378,6 +468,8 @@ function logout(options = {}) {
 
 function renderAutomationConfig() {
   const config = state.automationConfig || {};
+  $('sourceTitleInput').value = config.sourceTitle || 'Origem';
+  $('targetTitleInput').value = config.targetTitle || 'Destino';
   $('copyDelayInput').value = config.copyDelayMs ?? 80;
   $('pasteDelayInput').value = config.pasteDelayMs ?? 80;
   $('enterDelayInput').value = config.enterDelayMs ?? 120;
@@ -584,6 +676,8 @@ function bindActions() {
 
   $('startButton').addEventListener('click', async () => {
     try {
+      await registerDeviceLease();
+      startDeviceHeartbeat();
       await window.desktopApi.startAutomation({ subscriptionActive: isSubscriptionActive(state.subscription) });
       state.automation = await window.desktopApi.getAutomationStatus();
       render();
@@ -602,6 +696,8 @@ function bindActions() {
     event.preventDefault();
     try {
       state.automationConfig = await window.desktopApi.saveAutomationConfig({
+        sourceTitle: $('sourceTitleInput').value,
+        targetTitle: $('targetTitleInput').value,
         copyDelayMs: $('copyDelayInput').value,
         pasteDelayMs: $('pasteDelayInput').value,
         enterDelayMs: $('enterDelayInput').value,
@@ -671,11 +767,12 @@ async function init() {
   if (state.user) {
     try {
       await refreshSessionIfNeeded();
+      await activateDeviceSession();
       await refreshAccess();
     } catch (error) {
-      logout({ silent: true });
+      logout({ silent: true, release: false });
       showView('accountView');
-      showToast(`Sessão expirada. Entre novamente para verificar sua assinatura.`);
+      showToast(getFriendlyError(error) || 'Sessão expirada. Entre novamente para verificar sua assinatura.');
     }
   } else {
     showView('accountView');

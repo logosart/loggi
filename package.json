@@ -1,6 +1,6 @@
 {
   "name": "bipe-unico-desktop",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "description": "Desktop app for Bipe Unico with Supabase login and subscription gating.",
   "main": "src/main.js",
   "scripts": {

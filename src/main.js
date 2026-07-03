@@ -1,7 +1,9 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const os = require('os');
+const crypto = require('crypto');
+const { execFileSync, spawn } = require('child_process');
 const XLSX = require('xlsx');
 
 let mainWindow;
@@ -11,8 +13,9 @@ const isDev = !app.isPackaged;
 const appRoot = isDev ? path.join(__dirname, '..') : process.resourcesPath;
 const bundledAutomationDir = path.join(appRoot, 'automation');
 const publicConfigPath = path.join(__dirname, 'app-config.json');
-const DEFAULT_SOURCE_TITLE = 'Receive Task - Shopee Xpress';
-const DEFAULT_TARGET_TITLE = 'Detail - Shopee Xpress';
+const DEFAULT_SOURCE_TITLE = 'Origem';
+const DEFAULT_TARGET_TITLE = 'Destino';
+const DEVICE_HASH_NAMESPACE = 'bipe-unico-device-v1';
 
 function loadEnv() {
   if (!isDev) return {};
@@ -39,6 +42,41 @@ function loadPublicConfig() {
   } catch {
     return {};
   }
+}
+
+function getMachineSeed() {
+  if (process.platform === 'win32') {
+    try {
+      const output = execFileSync('reg', [
+        'query',
+        'HKLM\\SOFTWARE\\Microsoft\\Cryptography',
+        '/v',
+        'MachineGuid'
+      ], {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 2000
+      });
+      const match = output.match(/MachineGuid\s+REG_SZ\s+([^\r\n]+)/i);
+      if (match?.[1]) return `win:${match[1].trim()}`;
+    } catch {
+      // Fallback below.
+    }
+  }
+
+  const username = os.userInfo?.().username || 'unknown-user';
+  return `fallback:${os.hostname()}:${username}:${app.getPath('userData')}`;
+}
+
+function getDeviceIdentity() {
+  const seed = getMachineSeed();
+  return {
+    id: crypto
+      .createHash('sha256')
+      .update(`${DEVICE_HASH_NAMESPACE}:${seed}`)
+      .digest('hex'),
+    name: os.hostname() || 'Computador'
+  };
 }
 
 function parseIni(filePath) {
@@ -76,8 +114,11 @@ function getAutomationConfig() {
   const iniPath = path.join(automationDir, 'app.ini');
   const ini = parseIni(iniPath);
   const behavior = ini.behavior || {};
+  const windows = ini.windows || {};
 
   return {
+    sourceTitle: windows.source_title || DEFAULT_SOURCE_TITLE,
+    targetTitle: windows.target_title || DEFAULT_TARGET_TITLE,
     copyDelayMs: Number(behavior.copy_delay_ms || 80),
     pasteDelayMs: Number(behavior.paste_delay_ms || 80),
     enterDelayMs: Number(behavior.enter_delay_ms || 120),
@@ -92,6 +133,7 @@ function saveAutomationConfig(config) {
   const automationDir = getRuntimeAutomationDir();
   const iniPath = path.join(automationDir, 'app.ini');
   const ini = parseIni(iniPath);
+  ini.windows ||= {};
   ini.behavior ||= {};
 
   const clamp = (value, fallback, min, max) => {
@@ -100,6 +142,8 @@ function saveAutomationConfig(config) {
     return Math.min(Math.max(Math.round(number), min), max);
   };
 
+  ini.windows.source_title = String(config.sourceTitle || DEFAULT_SOURCE_TITLE).trim() || DEFAULT_SOURCE_TITLE;
+  ini.windows.target_title = String(config.targetTitle || DEFAULT_TARGET_TITLE).trim() || DEFAULT_TARGET_TITLE;
   ini.behavior.copy_delay_ms = clamp(config.copyDelayMs, 80, 20, 2000);
   ini.behavior.paste_delay_ms = clamp(config.pasteDelayMs, 80, 20, 2000);
   ini.behavior.enter_delay_ms = clamp(config.enterDelayMs, 120, 20, 2500);
@@ -260,8 +304,8 @@ function getRuntimeAutomationDir() {
 
   const ini = parseIni(configTarget);
   ini.windows ||= {};
-  ini.windows.source_title = DEFAULT_SOURCE_TITLE;
-  ini.windows.target_title = DEFAULT_TARGET_TITLE;
+  ini.windows.source_title ||= DEFAULT_SOURCE_TITLE;
+  ini.windows.target_title ||= DEFAULT_TARGET_TITLE;
   fs.writeFileSync(configTarget, serializeIni(ini), 'utf8');
 
   return dir;
@@ -320,6 +364,8 @@ ipcMain.handle('app:get-config', () => {
     billingUrl: process.env.BILLING_URL || env.BILLING_URL || publicConfig.billingUrl || ''
   };
 });
+
+ipcMain.handle('app:get-device', () => getDeviceIdentity());
 
 ipcMain.handle('billing:open', (_event, url) => {
   if (!url) throw new Error('A cobrança do aplicativo não está configurada.');

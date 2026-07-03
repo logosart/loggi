@@ -106,10 +106,21 @@ create table if not exists public.organization_invitations (
   unique (organization_id, email)
 );
 
+create table if not exists public.account_device_leases (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  device_id text not null,
+  device_name text,
+  bound_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  lease_expires_at timestamptz not null default now() + interval '3 minutes',
+  updated_at timestamptz not null default now()
+);
+
 alter table public.organizations enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.organization_memberships enable row level security;
 alter table public.organization_invitations enable row level security;
+alter table public.account_device_leases enable row level security;
 
 create or replace function public.is_organization_admin(target_organization_id uuid)
 returns boolean
@@ -139,6 +150,105 @@ as $$
   from public.organization_memberships
   where organization_id = target_organization_id
     and status = 'active';
+$$;
+
+create or replace function public.register_account_device(
+  p_device_id text,
+  p_device_name text default null
+)
+returns table (
+  allowed boolean,
+  lease_expires_at timestamptz,
+  active_device_name text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  existing public.account_device_leases%rowtype;
+begin
+  if current_user_id is null then
+    raise exception 'LOGIN_REQUIRED'
+      using errcode = '28000';
+  end if;
+
+  if nullif(trim(p_device_id), '') is null then
+    raise exception 'DEVICE_ID_REQUIRED'
+      using errcode = '22023';
+  end if;
+
+  select *
+  into existing
+  from public.account_device_leases
+  where user_id = current_user_id
+  for update;
+
+  if not found then
+    insert into public.account_device_leases (
+      user_id,
+      device_id,
+      device_name,
+      bound_at,
+      last_seen_at,
+      lease_expires_at,
+      updated_at
+    )
+    values (
+      current_user_id,
+      trim(p_device_id),
+      nullif(left(trim(coalesce(p_device_name, '')), 120), ''),
+      now(),
+      now(),
+      now() + interval '3 minutes',
+      now()
+    )
+    returning true, account_device_leases.lease_expires_at, account_device_leases.device_name
+    into allowed, lease_expires_at, active_device_name;
+    return next;
+    return;
+  end if;
+
+  if existing.device_id = trim(p_device_id)
+     or existing.lease_expires_at < now() then
+    update public.account_device_leases
+    set device_id = trim(p_device_id),
+        device_name = nullif(left(trim(coalesce(p_device_name, existing.device_name, '')), 120), ''),
+        last_seen_at = now(),
+        lease_expires_at = now() + interval '3 minutes',
+        updated_at = now()
+    where user_id = current_user_id
+    returning true, account_device_leases.lease_expires_at, account_device_leases.device_name
+    into allowed, lease_expires_at, active_device_name;
+    return next;
+    return;
+  end if;
+
+  return query
+    select false, existing.lease_expires_at, existing.device_name;
+end;
+$$;
+
+create or replace function public.release_account_device(p_device_id text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+begin
+  if current_user_id is null then
+    return false;
+  end if;
+
+  delete from public.account_device_leases
+  where user_id = current_user_id
+    and device_id = trim(coalesce(p_device_id, ''));
+
+  return found;
+end;
 $$;
 
 drop policy if exists "Members can read their organizations" on public.organizations;
@@ -207,6 +317,13 @@ with check (
   )
 );
 
+drop policy if exists "Users can read their device lease" on public.account_device_leases;
+create policy "Users can read their device lease"
+on public.account_device_leases
+for select
+to authenticated
+using (user_id = auth.uid());
+
 create index if not exists organizations_owner_user_id_idx on public.organizations(owner_user_id);
 create index if not exists subscriptions_user_id_idx on public.subscriptions(user_id);
 create index if not exists subscriptions_organization_id_idx on public.subscriptions(organization_id);
@@ -216,6 +333,7 @@ create index if not exists organization_memberships_user_id_idx on public.organi
 create index if not exists organization_memberships_organization_id_idx on public.organization_memberships(organization_id);
 create index if not exists organization_invitations_organization_id_idx on public.organization_invitations(organization_id);
 create index if not exists organization_invitations_email_idx on public.organization_invitations(email);
+create index if not exists account_device_leases_expires_at_idx on public.account_device_leases(lease_expires_at);
 
 -- Fluxo recomendado em producao:
 -- 1. O webhook de pagamento cria/atualiza subscriptions usando service_role.
@@ -225,3 +343,5 @@ create index if not exists organization_invitations_email_idx on public.organiza
 -- 4. Convites por e-mail devem ser enviados por Supabase Edge Function ou backend
 --    proprio usando service_role e um provedor de e-mail.
 -- 5. Nunca coloque a service_role key dentro do app desktop.
+-- 6. Para bloquear compartilhamento, o app chama register_account_device
+--    com o usuario autenticado. A conta so pode manter um lease ativo por vez.
